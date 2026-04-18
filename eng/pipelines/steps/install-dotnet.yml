@@ -1,0 +1,17 @@
+steps:
+  # Authenticate pipeline to update packages
+  - task: NuGetAuthenticate@1
+
+  - task: UseDotNet@2
+    displayName: 'Use .NET SDK'
+    retryCountOnTaskFailure: 3
+    inputs:
+      useGlobalJson: true
+      performMultiLevelLookup: true
+  - task: Cache@2
+    inputs:
+      key: 'nuget | "$(Agent.OS)" | $(Build.SourcesDirectory)/eng/packaging/Directory.Packages.props | $(Build.SourcesDirectory)/eng/packaging/** | ${{parameters.NuGetCacheKey}}'
+      path: $(NUGET_PACKAGES)
+    condition: and(succeeded(), ${{parameters.EnableNuGetCache}})
+    continueOnError: true
+    displayName: Cache NuGet packages

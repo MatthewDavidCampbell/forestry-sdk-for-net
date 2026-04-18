@@ -1,0 +1,49 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <!-- Paths -->
+    <PropertyGroup>
+        <!-- Repository root -->
+        <RepoRoot Condition="'$(RepoRoot)' == ''">$(MSBuildThisFileDirectory)</RepoRoot>
+
+        <!-- Engineering path -->
+        <RepoEngineeringPath>$([MSBuild]::NormalizeDirectory('$(RepoRoot)', 'eng'))</RepoEngineeringPath>
+
+        <!-- Forestry project namespaces -->
+        <ProjectStartsWithStandardName Condition="$(MSBuildProjectName.StartsWith('Forestry.'))">true</ProjectStartsWithStandardName>
+        <ImportRepoCommonSettings Condition="'$(ImportRepoCommonSettings)' == '' and '$(ProjectStartsWithStandardName)' == 'true'">true</ImportRepoCommonSettings>
+    </PropertyGroup>
+
+    <!-- Profile -->
+    <PropertyGroup>
+        <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+        <Platform Condition="'$(Platform)' == ''">AnyCPU</Platform>
+        <PlatformName Condition="'$(PlatformName)' == ''">$(Platform)</PlatformName>
+    </PropertyGroup>
+
+    <!-- Artifacts (ignored by .gitignore) instead of pumping to library bin + obj directories in every project -->
+    <PropertyGroup>
+        <ArtifactsDir Condition="'$(ArtifactsDir)' == ''">$(RepoRoot)artifacts\</ArtifactsDir>
+        <ArtifactsObjDir>$(ArtifactsDir)obj\</ArtifactsObjDir>
+        <ArtifactsBinDir>$(ArtifactsDir)bin\</ArtifactsBinDir>
+        <ArtifactsPackagesDir>$(ArtifactsDir)packages\$(Configuration)\</ArtifactsPackagesDir>
+
+        <OutDirName Condition="'$(OutDirName)' == ''">$(MSBuildProjectName)</OutDirName>
+
+        <BaseOutputPath Condition="'$(BaseOutputPath)' == ''">$([System.IO.Path]::GetFullPath('$(ArtifactsBinDir)$(OutDirName)\'))</BaseOutputPath>
+        <OutputPath Condition="'$(PlatformName)' == 'AnyCPU'">$(BaseOutputPath)$(Configuration)\</OutputPath>
+        <OutputPath Condition="'$(PlatformName)' != 'AnyCPU'">$(BaseOutputPath)$(PlatformName)\$(Configuration)\</OutputPath>
+
+        <BaseIntermediateOutputPath Condition="'$(BaseIntermediateOutputPath)' == ''">$([System.IO.Path]::GetFullPath('$(ArtifactsObjDir)$(OutDirName)\'))</BaseIntermediateOutputPath>
+        <IntermediateOutputPath Condition="'$(PlatformName)' == 'AnyCPU'">$(BaseIntermediateOutputPath)$(Configuration)\</IntermediateOutputPath>
+        <IntermediateOutputPath Condition="'$(PlatformName)' != 'AnyCPU'">$(BaseIntermediateOutputPath)$(PlatformName)\$(Configuration)\</IntermediateOutputPath>
+
+        <PackageOutputPath>$(ArtifactsPackagesDir)/$(MSBuildProjectName)</PackageOutputPath>
+    </PropertyGroup>
+
+    <!-- Use engineering -->
+    <Import Project="$(RepoEngineeringPath)\Directory.Build.Common.props" Condition="'$(ImportRepoCommonSettings)' == 'true'" />
+
+    <!-- Packaging (CPM) -->
+    <PropertyGroup>
+      <DirectoryPackagesPropsPath>$(MSBuildThisFileDirectory)eng\packaging\Directory.Packages.props</DirectoryPackagesPropsPath>
+    </PropertyGroup>
+</Project>

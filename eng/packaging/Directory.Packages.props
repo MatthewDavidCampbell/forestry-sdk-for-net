@@ -1,0 +1,19 @@
+<Project>
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+        <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- BCL -->
+        <PackageVersion Include="System.Memory.Data" Version="10.0.0" />
+    </ItemGroup>
+
+    <!-- Build -->
+    <ItemGroup>
+        <PackageVersion Include="coverlet.collector" Version="3.2.0" />
+    </ItemGroup>
+
+    <!-- Test packaging -->
+    <Import Project="$(MSBuildThisFileDirectory)Directory.Support.Packages.props" />
+</Project>

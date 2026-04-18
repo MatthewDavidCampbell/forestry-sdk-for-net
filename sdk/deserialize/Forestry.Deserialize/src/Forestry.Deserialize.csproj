@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Forestry Deserialize</Description>
+    <TargetFrameworks>$(RequiredTargetFrameworks)</TargetFrameworks>
+    <Version>1.0.0-beta.1</Version>
+    <ComptableVersion>1.0.0</ComptableVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageTags>Forestry Deserialize</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Forestry.Deserialize.Xml</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+</Project>

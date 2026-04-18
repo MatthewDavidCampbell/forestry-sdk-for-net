@@ -1,0 +1,5 @@
+<!-- https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-sln#migrate -->
+<Solution>
+  <Project Path="src/Biometria.Deserialize.Xml.csproj" />
+  <Project Path="test/Biometria.Deserialize.Xml.Tests.csproj" />
+</Solution>

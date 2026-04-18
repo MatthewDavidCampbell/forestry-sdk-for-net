@@ -1,0 +1,3 @@
+
+steps:
+  - template: /eng/pipelines/steps/install-dotnet.yml

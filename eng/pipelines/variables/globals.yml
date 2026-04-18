@@ -1,0 +1,7 @@
+# See default Azure Pipeline variables https://learn.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml
+
+variables:
+   # Build
+   BUILD_IDENTIFICATION: $(Build.BuildNumber)
+   # Used by dotnet/nuget with restores in constant directory (note: caching otherwise not shared between pipeline runs)
+   NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages/

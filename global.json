@@ -1,0 +1,11 @@
+{
+    "msbuild-sdks": {
+        "_remarks": "Used when building on Linux or macOs",
+        "Microsoft.Build.Traversal": "4.1.82"
+    },
+    "sdk": {
+        "_see": "https://learn.microsoft.com/en-us/dotnet/core/tools/global-json",
+        "version": "10.0.201",
+        "rollForward": "feature"
+    }
+}

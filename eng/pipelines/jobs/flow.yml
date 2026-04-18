@@ -1,0 +1,32 @@
+parameters:
+# flow
+- name: DependsOn
+  type: object
+  default: null
+# image
+- name: Pool
+  type: string
+  default: ${WINDOWSPOOL}
+- name: PoolImage
+  type: string
+  default: ${WINDOWSIMAGE}
+- name: Os
+  type: string
+  default: windows
+# job
+- name: StartingJobName
+  type: string
+  default: 'job_flow'
+
+
+  jobs:
+  - job: ${{ parameters.StartingJobName }}
+    variables:
+      - template: /eng/pipelines/variables/image.yml
+    pool:
+      name: ${{ parameters.Pool }}
+      image: ${{ parameters.PoolImage }}
+      os: ${{ parameters.Os }}
+    ${{ if parameters.DependsOn }}:
+    dependsOn: ${{ parameters.DependsOn }}
+    steps:

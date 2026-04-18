@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <!-- Build identification either local (empty) or pipeline (see globals.yml) -->
+    <_BuildIdentification>$(BUILD_IDENTIFICATION)</_BuildIdentification>
+    <_BuildIdentification Condition="'$(BUILD_IDENTIFICATION)' == ''">$([System.DateTime]::Now.ToString(yyyyMMdd)).1</_BuildIdentification>
+    <HasReleaseVersion>true</HasReleaseVersion>
+    <HasReleaseVersion Condition="$(Version.Contains('preview')) or $(Version.Contains('beta'))">false</HasReleaseVersion>
+    <_Version>$(Version)</_Version>
+  </PropertyGroup>
+
+  <Target Name="_GetAssemblyVersion" BeforeTargets="GetAssemblyVersion">
+    <Error Text="Expected _BuildIdentification match BUILD_IDENTIFICATION property"
+            Condition="'$(BUILD_IDENTIFICATION)' != '' and '$(BUILD_IDENTIFICATION)' != '$(_BuildIdentification)'" />
+
+    <Error Text="Invalid format of build identification: '$(BUILD_IDENTIFICATION)' not yyyyMMdd.r"
+           Condition="$(BUILD_IDENTIFICATION) != '' and ($(BUILD_IDENTIFICATION.Length) &lt; 10 or '$(OfficialBuildId[8])' != '.')" />
+
+    <PropertyGroup Condition="'$(BUILD_IDENTIFICATION)' != ''">
+      <_Year>$(_BuildIdentification.Substring(2, 2))</_Year>
+      <_Month>$(_BuildIdentification.Substring(4, 2))</_Month>
+      <_Day>$(_BuildIdentification.Substring(6, 2))</_Day>
+      <_Revision>$(_BuildIdentification.Substring(9))</_Revision>
+
+      <_PrefixMajor>$(Version.Split('.')[0])</_PrefixMajor>
+      <_PrefixMinor>$(Version.Split('.')[1])</_PrefixMinor>
+      <_PrefixPatch>$(Version.Split(".-")[2])</_PrefixPatch>
+
+      <_Major>$(_PrefixMajor)</_Major>
+
+      <!-- MINOR * 100 + PATCH / 100 -->
+      <_Minor>$([MSBuild]::Add(
+                    $([MSBuild]::Multiply($(_PrefixMinor), 100)),
+                    $([System.Convert]::ToInt32($([MSBuild]::Divide($(_PrefixPatch), 100))))
+                  ))</_Minor>
+
+      <!-- (PATCH % 100) * 100 + yy -->
+      <_Patch>$([MSBuild]::Add(
+                    $([MSBuild]::Multiply(
+                      $([MSBuild]::Modulo($(_PrefixPatch), 100)),
+                      100)),
+                    $(_Year)
+                  ))</_Patch>
+
+      <!-- mm * 5000 + dd * 100 + r -->
+      <_Revision>$([MSBuild]::Add(
+                        $([MSBuild]::Add(
+                          $([MSBuild]::Multiply($(_Month), 5000)),
+                          $([MSBuild]::Multiply($(_Day), 100))
+                        )),
+                        $(_Revision)
+                     ))</_Revision>
+
+      <AssemblyVersion>$(_Major).$(_Minor).$(_Patch).$(_Revision)</AssemblyVersion>
+    </PropertyGroup>
+  </Target>
+</Project>

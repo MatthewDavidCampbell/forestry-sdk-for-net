@@ -1,0 +1,8 @@
+# Default images
+
+variables:
+  - name: WINDOWSPOOL
+    value: Forestry-sdk-pool
+
+  - name: WINDOWSIMAGE
+    value: windows-2022

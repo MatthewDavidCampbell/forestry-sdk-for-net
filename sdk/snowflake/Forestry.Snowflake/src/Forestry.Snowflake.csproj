@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Forestry Snowflake</Description>
+    <TargetFrameworks>$(RequiredTargetFrameworks)</TargetFrameworks>
+    <Version>1.0.0-beta.1</Version>
+    <ComptableVersion>1.0.0</ComptableVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageTags>Forestry Snowflake</PackageTags>
+  </PropertyGroup>
+
+</Project>

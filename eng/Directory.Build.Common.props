@@ -1,0 +1,44 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <!-- Kind -->
+    <PropertyGroup>
+        <!-- Forestry client libraries -->
+        <IsClientLibrary Condition="'$(IsClientLibrary)' == '' and $(MSBuildProjectName.StartsWith('Forestry.'))">true</IsClientLibrary>
+
+        <IsTestProject Condition="'$(IsTestProject)' == '' and $(MSBuildProjectName.EndsWith('.Tests'))">true</IsTestProject>
+    </PropertyGroup>
+
+    <!-- Defaults -->
+    <PropertyGroup>
+        <LangVersion>latest</LangVersion>
+
+        <!-- TODO: Disable warnings -->
+
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
+
+    <!-- TODO: Code analysis rule sets with StyleCop.Analyzers -->
+    <PropertyGroup Condition="'$(IsClientLibrary)' == 'true'">
+    </PropertyGroup>    
+
+    <!-- Metadata -->
+    <PropertyGroup>
+        <Company>Forestry</Company>
+        <Product>Forestry SDK for .NET</Product>
+        <Authors>Coders</Authors>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <NeutralLanguage>en-US</NeutralLanguage>
+    </PropertyGroup>
+
+    <!-- Net Frameworks -->
+    <PropertyGroup>
+        <LatestTargetFramework>net9.0</LatestTargetFramework>
+        <RequiredTargetFrameworks>$(LatestTargetFramework);net8.0;</RequiredTargetFrameworks>
+
+        <TargetFrameworks>$(RequiredTargetFrameworks)</TargetFrameworks>
+    </PropertyGroup>
+
+    <!-- Client libraries -->
+    <PropertyGroup Condition="'$(IsClientLibrary)' == 'true'">
+        <TurnSharedSources>$(MSBuildThisFileDirectory)/../sdk/turn/Forestry.Turn/src/Shared/</TurnSharedSources>
+    </PropertyGroup>
+</Project>

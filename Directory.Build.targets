@@ -1,0 +1,13 @@
+<!-- Summary: Delegates to engineering -->
+
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <!-- Remarks: Traceability identifying where a test assembly originated -->
+    <ItemGroup Condition="'$(IsTestProject)' == 'true'">
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+            <_Parameter1>SourcePath</_Parameter1>
+            <_Parameter2>$(MSBuildProjectDirectory)</_Parameter2>
+        </AssemblyAttribute>
+    </ItemGroup>
+
+    <Import Project="$(RepoEngineeringPath)\Directory.Build.Common.targets" Condition="'$(ImportRepoCommonSettings)' == 'true'" />
+</Project>

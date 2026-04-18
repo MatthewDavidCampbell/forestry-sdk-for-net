@@ -1,0 +1,24 @@
+* text=auto eol=lf
+
+*.bmp binary
+*.dll binary
+*.gif binary
+*.jpg binary
+*.png binary
+*.snk binary
+*.exe binary
+*.wmv binary
+*.mp4 binary
+*.ismv binary
+*.isma binary
+
+*.cs     text eol=lf diff=csharp
+*.csproj text eol=lf
+*.sln    text eol=lf
+*.sh     text eol=lf
+*.json   text eol=lf
+*.bicep  text eol=lf
+
+# Generated code
+**/Generated/**/*.cs linguist-generated=true
+**/Generated/**/*.csproj linguist-generated=true

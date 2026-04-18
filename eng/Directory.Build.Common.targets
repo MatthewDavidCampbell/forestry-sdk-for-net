@@ -1,0 +1,12 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <Import Project="Directory.Build.Version.targets" />
+
+    <Target Name="EnforceCentralPackageManagement" BeforeTargets="Restore;Build;CollectPackageReferences">
+        <!-- Guard against disabling CPM -->
+        <Error
+            Condition="'$(ManagePackageVersionsCentrally)' == 'false'"
+            Text="FSDK00001: CPM may not be disabled"
+            Code="FSDK00001" />
+    </Target>
+</Project>
