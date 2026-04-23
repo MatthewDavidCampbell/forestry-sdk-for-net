@@ -5,7 +5,7 @@ namespace Forestry.Deserialize
     /// <summary>
     /// 
     /// </summary>
-    public partial class Deserialization
+    public partial static class Deserialization
     {
         /// <summary>
         /// Rather than multiple calls to typeof just cache 

@@ -1,20 +1,25 @@
 namespace Forestry.Deserialize
 {
     /// <summary>
-    /// Reader
+    /// Reader implementations are driven by concrete deserializers 
+    /// using the stack and stack frames to parse a particular media
     /// </summary>
     public interface IReader
     {
         /// <summary>
-        /// Read
+        /// Read only when yielding true
         /// </summary>
-        /// <returns></returns>
         public bool Read();
 
         /// <summary>
-        /// Ignore
+        /// Skip
         /// </summary>
-        public void Ignore();
+        public void Skip();
+
+        /// <summary> 
+        /// Try skip
+        /// </summary>
+        public bool TrySkip();
 
         /// <summary>
         /// Get <see cref="Value"/>
@@ -22,5 +27,13 @@ namespace Forestry.Deserialize
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
         public T GetValue<T>() where T: Value<T>;
+
+        /// <summary>
+        /// Try get <see cref="Value"/>
+        /// </summary>
+        /// <param name="value"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public bool TryGetValue<T>(out T value) where T : Value<T>;
     }
 }
