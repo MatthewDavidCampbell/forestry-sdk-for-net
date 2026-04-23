@@ -1,4 +1,4 @@
-namespace Forestry.Snowflake {
+namespace Forestry.Raindrop {
     /// <summary>
     /// An identity profile creates restrictions on lifetime,
     /// creation rate, and nodes based on the allowed suffix length.

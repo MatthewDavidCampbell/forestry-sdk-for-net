@@ -1,5 +1,5 @@
 
-namespace Forestry.Snowflake
+namespace Forestry.Raindrop
 {
     /// <summary>
     /// Default profiles for "result", "delivery" and "delivery time"
@@ -67,54 +67,14 @@ namespace Forestry.Snowflake
         public const int Nodes = 64;  // Max 65 nodes when 0 is a valid node id
 
         /// <summary>
-        /// Havesting result 
+        /// Smaller profile with constraints for 8 base 32 character suffix, 17 year lifetime, 32 creations per second and 64 nodes
         /// </summary>
-        public const byte HarvestingResultApplicationId = 0;
+        public static readonly IdentityProfile SmallerYearProfile = CreateIdentityProfile(ResultPrefix, ResultSuffixLength, Lifetime_17_Years, CreationRate_17_Years, Nodes);
 
         /// <summary>
-        /// Forwarding result
+        /// Larger profile with constraints for 16 base 32 character suffix, 34 year lifetime, 32 creations per second and 64 nodes
         /// </summary>
-        public const byte ForwardingResultApplicationId = 5;
-
-        /// <summary>
-        /// Quality result
-        /// </summary>
-        public const byte QualityResultApplicationId = 10;
-
-        /// <summary>
-        /// Quantity result
-        /// </summary>
-        public const byte QuantityResultApplicationId = 15;
-
-        /// <summary>
-        /// Rapp 
-        /// </summary>
-        public const byte RappResultApplicationId = 20;
-
-        /// <summary>
-        /// Haverting measurement
-        /// </summary>
-        public const byte HarvestingMeasurementApplicationId = 25;
-
-        /// <summary>
-        /// Measurement decisions
-        /// </summary>
-        public const byte MeasurementDecisionsApplicationId = 30;
-
-        /// <summary>
-        /// Result profile with constraints for 8 base 32 character suffix, 17 year lifetime, 32 creations per second and 64 nodes
-        /// </summary>
-        public static readonly IdentityProfile ResultProfile = CreateIdentityProfile(ResultPrefix, ResultSuffixLength, Lifetime_17_Years, CreationRate_17_Years, Nodes);
-
-        /// <summary>
-        /// Delivery profile with constraints for 8 base 32 character suffix, 17 year lifetime, 32 creations per second and 64 nodes
-        /// </summary>
-        public static readonly IdentityProfile DeliveryProfile = CreateIdentityProfile(DeliveryPrefix, DeliverySuffixLength, Lifetime_17_Years, CreationRate_17_Years, Nodes);
-
-        /// <summary>
-        /// Delivery profile with constraints for 16 base 32 character suffix, 34 year lifetime, 32 creations per second and 64 nodes
-        /// </summary>
-        public static readonly IdentityProfile DeliveryTimeProfile = CreateIdentityProfile(DeliveryPrefix, DeliveryTimeSuffixLength, Lifetime_34_Years, CreationRate_17_Years, Nodes);
+        public static readonly IdentityProfile LargerYearProfile = CreateIdentityProfile(DeliveryPrefix, DeliveryTimeSuffixLength, Lifetime_34_Years, CreationRate_17_Years, Nodes);
 
         /// <summary>
         /// Identity profiles have the following characteristics:

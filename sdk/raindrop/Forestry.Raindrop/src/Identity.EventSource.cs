@@ -1,7 +1,6 @@
-using System;
 using System.Diagnostics.Tracing;
 
-namespace Forestry.Snowflake
+namespace Forestry.Raindrop
 {
     /// <summary>
     /// Diagnostics with creation rate overflow when creating a suffix

@@ -1,4 +1,4 @@
-namespace Forestry.Snowflake
+namespace Forestry.Raindrop
 {
     internal readonly struct Messages
     {

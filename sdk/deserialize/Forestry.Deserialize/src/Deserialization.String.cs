@@ -1,6 +1,6 @@
 namespace Forestry.Deserialize
 {
-    public partial static class Deserialization
+    public static partial class Deserialization
     {
         public static IEnumerable<Value> Deserialize<T>(string media, DeserializeOptions options)
         {

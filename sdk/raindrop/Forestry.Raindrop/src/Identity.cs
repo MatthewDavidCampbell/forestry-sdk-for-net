@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Forestry.Snowflake
+namespace Forestry.Raindrop
 {
     /// <summary>
     /// Identity creation without external resources that 

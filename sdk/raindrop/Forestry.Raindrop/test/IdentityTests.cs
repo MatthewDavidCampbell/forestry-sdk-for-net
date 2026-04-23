@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.Tracing;
 using Xunit;
-using static Forestry.Snowflake.Identity;
+using static Forestry.Raindrop.Identity;
 
-namespace Forestry.Snowflake.Tests
+namespace Forestry.Raindrop.Tests
 {
     /// <summary>
     /// Unit tests for identity creation should show:
@@ -221,10 +221,10 @@ namespace Forestry.Snowflake.Tests
         }
 
         [Fact]
-        public void When_ResultProfile_ItShould_HavePrefixAndLength()
+        public void When_SmallerYearProfile_ItShould_HavePrefixAndLength()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.ResultProfile;
+            IdentityProfile profile = IdentityProfiles.SmallerYearProfile;
 
             // Act
             var identity = Identity.NewIdentity(profile);
@@ -236,25 +236,10 @@ namespace Forestry.Snowflake.Tests
         }
 
         [Fact]
-        public void When_DeliveryProfile_ItShould_HavePrefixAndLength()
+        public void When_LargerYearProfile_ItShould_HavePrefixAndLength()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.DeliveryProfile;
-
-            // Act
-            var identity = Identity.NewIdentity(profile);
-            var value = identity.ToString();
-
-            // Assert    
-            Assert.StartsWith(IdentityProfiles.DeliveryPrefix, value);
-            Assert.Equal(12, value.Length);
-        }
-
-        [Fact]
-        public void When_DeliveryTimeProfile_ItShould_HavePrefixAndLength()
-        {
-            // Arrange
-            IdentityProfile profile = IdentityProfiles.DeliveryTimeProfile;
+            IdentityProfile profile = IdentityProfiles.LargerYearProfile;
 
             // Act
             var identity = Identity.NewIdentity(profile);
@@ -547,7 +532,7 @@ namespace Forestry.Snowflake.Tests
         public void When_NewIdentity_ItShould_EqualOther()
         {
             // Arrange
-            var identity = Identity.NewIdentity(IdentityProfiles.ResultProfile);
+            var identity = Identity.NewIdentity(IdentityProfiles.SmallerYearProfile);
 
             // Act
             var other = new Identity(identity.ToString("d"));
@@ -564,7 +549,7 @@ namespace Forestry.Snowflake.Tests
         public void When_NewIdentity_ItShould_NotEqualOther()
         {
             // Arrange
-            var identity = Identity.NewIdentity(IdentityProfiles.ResultProfile);
+            var identity = Identity.NewIdentity(IdentityProfiles.SmallerYearProfile);
 
             // Act
             var other = new Identity("XXXX-12345678");

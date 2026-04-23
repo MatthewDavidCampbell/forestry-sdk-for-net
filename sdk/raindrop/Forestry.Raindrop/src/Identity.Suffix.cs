@@ -2,9 +2,9 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("Forestry.Snowflake.Tests")]
+[assembly: InternalsVisibleTo("Forestry.Raindrop.Tests")]
 
-namespace Forestry.Snowflake
+namespace Forestry.Raindrop
 {
     public readonly partial struct Identity
     {

@@ -13,7 +13,7 @@ namespace Forestry.Deserialize
         /// <param name="cancellationToken"></param>
         /// <typeparam name="Value"></typeparam>
         /// <returns></returns>
-        protected virtual IAsyncEnumerator<Value> ReadAsync(DeserializeOptions options, CancellationToken cancellationToken = default) => Constants.EmptyAsync<Value>();
+        protected virtual IAsyncEnumerator<Value> ReadAsync(ref IReader reader, ref IReadStack readStack, DeserializeOptions options, CancellationToken cancellationToken = default) => Constants.EmptyAsync<Value>();
 
         /// <summary>
         /// Default returns an empty value enumerator
@@ -22,7 +22,7 @@ namespace Forestry.Deserialize
         /// <param name="cancellationToken"></param>
         /// <typeparam name="Value"></typeparam>
         /// <returns></returns>
-        protected virtual IEnumerator<Value> Read(DeserializeOptions options, CancellationToken cancellationToken = default) => Constants.Empty<Value>();
+        protected virtual IEnumerator<Value> Read(ref IReader reader, ref IReadStack readStack, DeserializeOptions options, CancellationToken cancellationToken = default) => Constants.Empty<Value>();
 
         /// <summary>
         /// 

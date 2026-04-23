@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <AssemblyName>Forestry.Snowflake.Tests</AssemblyName>
+    <AssemblyName>Forestry.Raindrop.Tests</AssemblyName>
   </PropertyGroup>
 
   <!-- Test package references -->
@@ -28,6 +28,6 @@
 
   <!-- Source package references -->
   <ItemGroup>
-    <ProjectReference Include="..\src\Forestry.Snowflake.csproj" />
+    <ProjectReference Include="..\src\Forestry.Raindrop.csproj" />
   </ItemGroup>
 </Project>
