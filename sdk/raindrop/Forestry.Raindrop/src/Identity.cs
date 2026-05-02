@@ -1,42 +1,52 @@
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Forestry.Raindrop
 {
     /// <summary>
-    /// Identity creation without external resources that 
-    /// adheres to application profile constraints on 
-    /// creation rate, lifetime without duplicates and multi-node
-    /// deployments.
+    /// An identity is unique without using external resource by adhering to policies.  A policy 
+    /// shapes the identity with the following structure:
+    /// - alphabet
+    /// - lifetime
+    /// - creation rate
+    /// - nodes
+    /// 
+    /// An alphabet defines the character set impacting the number of bits needed for the alphabet.  
+    /// An identity has a prefix and suffix.  The prefix has latin versal letters 
+    /// and digits requiring 6 bits while the suffix excludes "I", "L", "O", and "U" getting by 
+    /// with just 5 bits.
+    /// 
+    /// The lifetime is how long in seconds the identity lives before rolling over leading 
+    /// to a duplicate.
+    /// 
+    /// The creation rate is how many identities may be created within a second before rolling 
+    /// over leading to a duplicate.
+    /// 
+    /// Nodes are the number of applications running in a distributed system.  A node id is 
+    /// necessary to avoid duplicates between multiple runtimes.
+    /// 
+    /// The combination of policies on the alphabet, lifetime, creation rate and runtime nodes 
+    /// declare the number of characters in the suffix.  The prefix should have a separate policy.
+    /// 
+    /// After declaring an identity it can be formatted to a string or checked for equality.
+    /// 
+    /// Policies are unfortunately hard-coded.  A good developer would have a policy interface 
+    /// and pre-defined allow profiles to hand-pick applicable policies.
     /// </summary>
+    /// <example>
+    /// <code>
+    /// string identity = Identity.NewIdentity(Profile, 5).ToString();  // node id == 5
+    /// </code>
+    /// </example>
+    /// <remarks>Readonly structs must initialize fields on declaration <see cref="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/struct"/></remarks>
     public readonly partial struct Identity : IEquatable<Identity>
     {
-        /// <summary>
-        /// Prefix encoded as base 36 (requires 6 bit packing)
-        /// </summary>
-        private readonly uint _prefix;
-
-        /// <summary>
-        /// Suffix encoded as base 32 (requires 5 bit packing)
-        /// </summary>
-        private readonly UInt128 _suffix;
-
-        /// <summary>
-        /// Prefix length (1-7 characters)
-        /// </summary>
-        private readonly byte _prefixLength;
-
-        /// <summary>
-        /// Suffix length (1-26 characters)
-        /// </summary>
-        private readonly byte _suffixLength;
-
+        #region Alphabets
         /// <summary>
         /// Base 36 alphabet with latin versal letters and digits
         /// </summary>
-        /// <remarks>6 bit packing per character</remarks>
+        /// <remarks>2 to the power of 6 == 64 characters covers the base alphabet</remarks>
         public static readonly char[] Alphabet =
         [
             '0','1','2','3','4','5','6','7','8','9', // 0–9
@@ -46,11 +56,26 @@ namespace Forestry.Raindrop
         ];
 
         /// <summary>
+        /// Prefix is an unsigned integer == 32 bits == max 5 characters each 6 bits in size
+        /// </summary>
+        private readonly uint _prefix;
+
+        /// <summary>
+        /// Maximum length of the prefix string
+        /// </summary>
+        public const byte MaxPrefixLength = 5;
+
+        /// <summary>
+        /// Prefix length
+        /// </summary>
+        private readonly byte _prefixLength;
+
+        /// <summary>
         /// Base 32 alphabet <see cref="https://www.crockford.com/base32.html"/> excluding characters 
         /// that can easily be confused (I, L, O, U) 
         /// </summary>
-        /// <remarks>5 bit packing per character</remarks>
-        private static readonly char[] _crockfordAlphabet =
+        /// <remarks>2 to the power of 5 == 32 characters covers the CrockFord alphabet</remarks>
+        private static readonly char[] _crockFordAlphabet =
         [
             '0','1','2','3','4','5','6','7','8','9', // 0–9
             'A','B','C','D','E','F','G','H',         // 10–17
@@ -59,21 +84,57 @@ namespace Forestry.Raindrop
         ];
 
         /// <summary>
-        /// Maximum 5 characters derives from base 36 alphabet where 2 raised 6 == 64 covering the alphabet
+        /// Suffix is a unsigned bit integer == 128 bits == max 25 characters each 5 bits in size
         /// </summary>
-        public const byte MaxPrefixLength = 5;
+        private readonly UInt128 _suffix;   
 
         /// <summary>
-        /// Maximum 21 derives from base 32 alphabet raised 128/6 == 21 (i.e. UInt128 space)
+        /// Maximum length of the suffix string
         /// </summary>
-        public const byte MaxSuffixLength = 21;
+        public const byte MaxSuffixLength = 21;     
 
         /// <summary>
-        /// Create identity from a prefix and suffix seperated by either a dash or whitespace
+        /// Suffix length
+        /// </summary>
+        private readonly byte _suffixLength;
+        #endregion
+
+        #region Declaring
+        /// <summary>
+        /// Create new identity with a profile in a singular node runtime
+        /// </summary>
+        /// <param name="profile"></param>
+        /// <returns></returns>
+        public static Identity NewIdentity(Profile profile)
+        {
+            string prefix = (profile.Prefix ?? string.Empty).ToUpperInvariant();
+            string suffix = _suffixes.GetOrAdd(profile, p => new Suffix(p, new Clock())).NewSuffix(0); // see Identity.Suffix and Identity.Clock partials
+
+            return new Identity($"{prefix}-{suffix}");
+        }
+
+        /// <summary>
+        /// Create new identity with a profile in a multiple nodes runtime
+        /// </summary>
+        /// <param name="profile"></param>
+        /// <returns></returns>
+        public static Identity NewIdentity(Profile profile, byte nodeId)
+        {
+            string prefix = (profile.Prefix ?? string.Empty).ToUpperInvariant();
+            string suffix = _suffixes.GetOrAdd(profile, p => new Suffix(p, new Clock())).NewSuffix(nodeId);
+
+            return new Identity($"{prefix}-{suffix}");
+        }
+
+        /// <summary>
+        /// Create identity from a prefix and suffix strings ignoring any starting 
+        /// or trailing whitespaces.
+        /// 
+        /// This method is nice for testing when wanting to extract parts of the 
+        /// structured identity e.g. the node id (see Human test case)
         /// </summary>
         /// <param name="value"></param>
         /// <exception cref="FormatException"></exception>
-        /// <remarks>Any starting or trailing whitespaces are ignored</remarks>
         public Identity(string value)
         {
             ArgumentNullException.ThrowIfNull(value);
@@ -86,7 +147,7 @@ namespace Forestry.Raindrop
                 separator = span.IndexOfAny([' ', '\t', '\r', '\n']);
             }
 
-            if (separator < 0) throw new FormatException(Messages.Identity.IdentityUnrecognized);
+            if (separator < 0) throw new FormatException(Messages.Identity.Unrecognized);
 
             var prefix = span[..separator];
             var suffix = span[(separator + 1)..];
@@ -96,26 +157,11 @@ namespace Forestry.Raindrop
             Debug.Assert(success, "IdentityParseThrowStyle.All means throw on all failures");
 
             this = result.ToIdentity();
-        }
+        }                
 
         /// <summary>
-        /// Create identity from encoded prefix (base 36) and suffix (base 32)
-        /// </summary>
-        /// <param name="prefix"></param>
-        /// <param name="suffix"></param>
-        /// <param name="prefixLength"></param>
-        /// <param name="suffixLength"></param>
-        private Identity(uint prefix, UInt128 suffix, byte prefixLength, byte suffixLength)
-        {
-            _prefix = prefix;
-            _suffix = suffix;
-            _prefixLength = prefixLength;
-            _suffixLength = suffixLength;
-        }
-
-        /// <summary>
-        /// Try parse prefix and suffix into an identity result that
-        /// optionally throwing parsing failures
+        /// Try parse prefix and suffix into an internal identity result that
+        /// optionally throws parsing failures
         /// </summary>
         /// <param name="prefix"></param>
         /// <param name="suffix"></param>
@@ -125,6 +171,12 @@ namespace Forestry.Raindrop
         {
             prefix = SpanTrim(prefix);
             suffix = SpanTrim(suffix);
+
+            if (prefix.Length == 0 || suffix.Length == 0)
+            {
+                result.SetFailure(ParseFailure.Format_NullOrEmpty);
+                return false;
+            }
 
             if (!(prefix.Length >= 1 && prefix.Length <= MaxPrefixLength))
             {
@@ -175,7 +227,7 @@ namespace Forestry.Raindrop
             {
                 result.SetFailure(ParseFailure.Format_WrongPrefixLength);
                 return false;
-            }
+            }            
             result._prefixLength = (byte)prefix.Length;
 
             if (!(suffix.Length >= 1 && suffix.Length <= MaxSuffixLength))
@@ -183,7 +235,6 @@ namespace Forestry.Raindrop
                 result.SetFailure(ParseFailure.Format_WrongSuffixLength);
                 return false;
             }
-
             result._suffixLength = (byte)suffix.Length;
 
             int invalidCharacter = 0;
@@ -207,7 +258,6 @@ namespace Forestry.Raindrop
             return true;
         }
         
-
         /// <summary> 
         /// Pack prefix as 6 bits without branching (e.g. for-loops)
         /// </summary>
@@ -320,7 +370,7 @@ namespace Forestry.Raindrop
         }
 
         /// <summary>
-        /// Encodes character to base 32 alphabet (i.e. assigns the Crockford 
+        /// Encodes character to base 32 alphabet (i.e. assigns the CrockFord 
         /// alphabet to integers)
         /// </summary>
         /// <param name="c"></param>
@@ -342,8 +392,8 @@ namespace Forestry.Raindrop
             uint alpha = uc - 'A';
             uint alphaRangeMask = (uint)((alpha <= 25) ? 0xFFFFFFFFu : 0u);
 
-            // Crockford remapping table for A–Z (branchless)
-            // Maps A..Z → Crockford values or 0xFF for invalid letters (I,L,O,U)
+            // CrockFord remapping table for A–Z (branchless)
+            // Maps A..Z → CrockFord values or 0xFF for invalid letters (I,L,O,U)
             ReadOnlySpan<byte> map =
             [
                 10,11,12,13,14,15,16,17, // A–H
@@ -373,6 +423,165 @@ namespace Forestry.Raindrop
             return value;
         }
 
+        /// <summary>
+        /// Throw failure flag when parsing
+        /// </summary>
+        private enum IdentityParseThrowStyle : byte
+        {
+            None = 0,
+            All = 1
+        }
+
+        /// <summary>
+        /// Possible parsing failures
+        /// </summary>
+        private enum ParseFailure
+        {
+            Format_NullOrEmpty,
+            Format_WrongPrefixLength,
+            Format_InvalidPrefixCharacter,
+            Format_WrongSuffixLength,
+            Format_InvalidSuffixCharacter,
+            Format_Unrecognized
+        }
+
+        /// <summary>
+        /// Identity readonly constructor from encoded prefix (base 36) and suffix (base 32)
+        /// </summary>
+        /// <param name="prefix"></param>
+        /// <param name="suffix"></param>
+        /// <param name="prefixLength"></param>
+        /// <param name="suffixLength"></param>
+        private Identity(uint prefix, UInt128 suffix, byte prefixLength, byte suffixLength)
+        {
+            _prefix = prefix;
+            _suffix = suffix;
+            _prefixLength = prefixLength;
+            _suffixLength = suffixLength;
+        }        
+
+        /// <summary>
+        /// Identity result is an intermediate struct used when parsing 
+        /// and initializes the fields of the readonly identity struct
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential)]
+        private struct IdentityResult
+        {
+            internal uint _prefix;
+
+            internal UInt128 _suffix;
+
+            internal byte _prefixLength;
+
+            internal byte _suffixLength;
+
+            private readonly IdentityParseThrowStyle _throwStyle;
+
+            internal IdentityResult(IdentityParseThrowStyle throwStyle) : this()
+            {
+                _prefix = 0;
+                _suffix = 0;
+
+                _prefixLength = 0;
+                _suffixLength = 0;
+
+                _throwStyle = throwStyle;
+            }
+
+            internal readonly void SetFailure(ParseFailure failureKind)
+            {
+                if (_throwStyle == IdentityParseThrowStyle.None) return;
+
+                throw new FormatException(failureKind switch
+                {
+                    ParseFailure.Format_NullOrEmpty => Messages.Identity.IsEmpty,
+                    ParseFailure.Format_WrongPrefixLength => Messages.Identity.WrongPrefixLength,
+                    ParseFailure.Format_InvalidPrefixCharacter => Messages.Identity.InvalidPrefixCharacter,
+                    ParseFailure.Format_WrongSuffixLength => Messages.Identity.WrongSuffixLength,
+                    ParseFailure.Format_InvalidSuffixCharacter => Messages.Identity.InvalidSuffixCharacter,
+                    _ => Messages.Identity.Unrecognized
+                });
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly Identity ToIdentity()
+            {
+                return new Identity(_prefix, _suffix, (byte)_prefixLength, (byte)_suffixLength);
+            }
+        }
+        #endregion
+
+        #region Formatting
+        /// <summary>
+        /// Identity as string
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            int pLen = _prefixLength;
+            int sLen = _suffixLength;
+
+            if (pLen < 1 && sLen < 1) return string.Empty;
+
+            char[] combined = new char[pLen + sLen];
+
+            if (pLen > 0)
+                UnpackPrefix(_prefix, combined.AsSpan(0, pLen), pLen);
+
+            if (sLen > 0)
+                UnpackSuffix(_suffix, combined.AsSpan(pLen, sLen), sLen);
+
+            return new string(combined);
+        }
+
+        /// <summary>
+        /// Identity as formated string
+        /// </summary>
+        /// <param name="format"></param>
+        /// <returns></returns>
+        /// <exception cref="FormatException"></exception>
+        public string ToString(string format)
+        {
+            if (string.IsNullOrEmpty(format)) return ToString();
+
+            switch (format[0] | 0x20)
+            {
+                case 'd':
+                    return ToString('-');
+                case 's':
+                    return ToString(' ');
+                default:
+                    throw new FormatException($"Format specifier '{format}' is not supported.");
+            }
+        }
+
+        /// <summary>
+        /// Identity as string where the separator is between the prefix and suffixs
+        /// </summary>
+        /// <param name="separator"></param>
+        /// <returns></returns>
+        private string ToString(char separator)
+        {
+            int pLen = _prefixLength;
+            int sLen = _suffixLength;
+
+            if (pLen <= 0 && sLen <= 0) return string.Empty;
+
+            // allocate exact sized buffers
+            char[] pbuf = pLen > 0 ? new char[pLen] : [];
+            char[] sbuf = sLen > 0 ? new char[sLen] : [];
+
+            if (pLen > 0) UnpackPrefix(_prefix, pbuf, pLen);
+            if (sLen > 0) UnpackSuffix(_suffix, sbuf, sLen);
+
+            char[] combined = new char[pLen + 1 + sLen];
+            Array.Copy(pbuf, 0, combined, 0, pLen);
+
+            combined[pLen] = separator;
+
+            if (sLen > 0) Array.Copy(sbuf, 0, combined, pLen + 1, sLen);
+            return new string(combined);
+        }
 
         /// <summary>
         /// Unpack internal prefix without branching
@@ -432,7 +641,7 @@ namespace Forestry.Raindrop
 
 
         /// <summary>
-        /// Decode base 32 value to character using Crockford alphabet
+        /// Decode base 32 value to character using CrockFord alphabet
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
@@ -440,159 +649,11 @@ namespace Forestry.Raindrop
         private static char Decode32(UInt128 value)
         {
             // value must be 0..31
-            return _crockfordAlphabet[(int)value];
+            return _crockFordAlphabet[(int)value];
         }
+        #endregion
 
-        /// <summary>
-        /// Identity result is an intermediate struct used when parsing 
-        /// and initials the readonly fields of the identity struct when 
-        /// initializing (e.g. readonly fields have to be set in the constructor, 
-        /// but parsing is a multi-step process that requires mutability)
-        /// </summary>
-        [StructLayout(LayoutKind.Sequential)]
-        private struct IdentityResult
-        {
-            internal uint _prefix;
-
-            internal UInt128 _suffix;
-
-            internal byte _prefixLength;
-
-            internal byte _suffixLength;
-
-            private readonly IdentityParseThrowStyle _throwStyle;
-
-            internal IdentityResult(IdentityParseThrowStyle throwStyle) : this()
-            {
-                _prefix = 0;
-                _suffix = 0;
-
-                _prefixLength = 0;
-                _suffixLength = 0;
-
-                _throwStyle = throwStyle;
-            }
-
-            internal readonly void SetFailure(ParseFailure failureKind)
-            {
-                if (_throwStyle == IdentityParseThrowStyle.None) return;
-
-                throw new FormatException(failureKind switch
-                {
-                    ParseFailure.Format_NullOrEmpty => Messages.Identity.IdentityEmpty,
-                    ParseFailure.Format_Whitespace => Messages.Identity.IdentityWhitespace,
-                    ParseFailure.Format_WrongPrefixLength => Messages.Identity.IdentityWrongPrefixLength,
-                    ParseFailure.Format_InvalidPrefixCharacter => Messages.Identity.IdentityInvalidPrefixCharacter,
-                    ParseFailure.Format_WrongSuffixLength => Messages.Identity.IdentityWrongSuffixLength,
-                    ParseFailure.Format_InvalidSuffixCharacter => Messages.Identity.IdentityInvalidSuffixCharacter,
-                    _ => Messages.Identity.IdentityUnrecognized
-                });
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly Identity ToIdentity()
-            {
-                return new Identity(_prefix, _suffix, (byte)_prefixLength, (byte)_suffixLength);
-            }
-        }
-
-        /// <summary>
-        /// Create new identity from profile (single node deployments)
-        /// </summary>
-        /// <param name="profile"></param>
-        /// <returns></returns>
-        public static Identity NewIdentity(IdentityProfile profile)
-        {
-            string prefix = profile.Prefix.ToUpperInvariant();
-            string suffix = _suffixes.GetOrAdd(profile, p => new Suffix(p, new Clock())).NewSuffix(0);
-
-            return new Identity($"{prefix}-{suffix}");
-        }
-
-        /// <summary>
-        /// Create new identity from profile (multi node deployments)
-        /// </summary>
-        /// <param name="profile"></param>
-        /// <returns></returns>
-        public static Identity NewIdentity(IdentityProfile profile, byte nodeId)
-        {
-            string prefix = profile.Prefix.ToUpperInvariant();
-            string suffix = _suffixes.GetOrAdd(profile, p => new Suffix(p, new Clock())).NewSuffix(nodeId);
-
-            return new Identity($"{prefix}-{suffix}");
-        }
-
-        /// <summary>
-        /// Identity as string
-        /// </summary>
-        /// <returns></returns>
-        public override string ToString()
-        {
-            int pLen = _prefixLength;
-            int sLen = _suffixLength;
-
-            if (pLen < 1 && sLen < 1) return string.Empty;
-
-            char[] combined = new char[pLen + sLen];
-
-            if (pLen > 0)
-                UnpackPrefix(_prefix, combined.AsSpan(0, pLen), pLen);
-
-            if (sLen > 0)
-                UnpackSuffix(_suffix, combined.AsSpan(pLen, sLen), sLen);
-
-            return new string(combined);
-        }
-
-        /// <summary>
-        /// Identity as formated string
-        /// </summary>
-        /// <param name="format"></param>
-        /// <returns></returns>
-        /// <exception cref="FormatException"></exception>
-        public string ToString(string format)
-        {
-            if (string.IsNullOrEmpty(format)) return ToString();
-
-            switch (format[0] | 0x20)
-            {
-                case 'd':
-                    return ToString('-');
-                case 's':
-                    return ToString(' ');
-                default:
-                    throw new FormatException($"Format specifier '{format}' is not supported.");
-            }
-        }
-
-        /// <summary>
-        /// Identity as string where the separator is between the prefix and suffix
-        /// </summary>
-        /// <param name="separator"></param>
-        /// <returns></returns>
-        private string ToString(char separator)
-        {
-            int prefixLength = _prefixLength;
-            int suffixLength = _suffixLength;
-
-            if (prefixLength <= 0 && suffixLength <= 0) return string.Empty;
-
-            // allocate exact sized buffers
-            char[] prefixBuffer = prefixLength > 0 ? new char[prefixLength] : [];
-            char[] suffixBuffer = suffixLength > 0 ? new char[suffixLength] : [];
-
-            if (prefixLength > 0) UnpackPrefix(_prefix, prefixBuffer, prefixLength);
-            if (suffixLength > 0) UnpackSuffix(_suffix, suffixBuffer, suffixLength);
-
-            char[] combined = new char[prefixLength + 1 + suffixLength];
-            Array.Copy(prefixBuffer, 0, combined, 0, prefixLength);
-
-            combined[prefixLength] = separator;
-
-            if (suffixLength > 0) Array.Copy(suffixBuffer, 0, combined, prefixLength + 1, suffixLength);
-            return new string(combined);
-        }
-
+        #region Equality
         /// <summary>
         /// Equality
         /// </summary>
@@ -611,7 +672,7 @@ namespace Forestry.Raindrop
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public override bool Equals([NotNullWhen(true)] object? obj) => obj is Identity other && Equals(other);
+        public override bool Equals(object? obj) => obj is Identity other && Equals(other);
 
         /// <summary>
         /// Hash code
@@ -635,28 +696,6 @@ namespace Forestry.Raindrop
         public static bool operator ==(Identity left, Identity right) => left.Equals(right);
 
         public static bool operator !=(Identity left, Identity right) => !left.Equals(right);
-
-        /// <summary>
-        /// Throw failure flag when parsing
-        /// </summary>
-        private enum IdentityParseThrowStyle : byte
-        {
-            None = 0,
-            All = 1
-        }
-
-        /// <summary>
-        /// Possible parsing failures
-        /// </summary>
-        private enum ParseFailure
-        {
-            Format_NullOrEmpty,
-            Format_Whitespace,
-            Format_WrongPrefixLength,
-            Format_InvalidPrefixCharacter,
-            Format_WrongSuffixLength,
-            Format_InvalidSuffixCharacter,
-            Format_Unrecognized
-        }
+        #endregion
     }
 }

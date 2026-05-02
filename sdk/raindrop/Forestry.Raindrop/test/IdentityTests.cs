@@ -9,7 +9,7 @@ namespace Forestry.Raindrop.Tests
     /// Unit tests for identity creation should show:
     /// 
     /// - Prefix validation
-    /// - Suffix validation (e.g. only Crockford characters)
+    /// - Suffix validation (e.g. only CrockFord characters)
     /// - Profiles that create correct bit sizes for lifetimes, creation rate, nodes and their masks (i.e. max values)
     /// - Timestamp part with overflow handling (e.g. VM clock drift, rollover, no DST)
     /// - Creation rate part with overflow handling
@@ -17,13 +17,6 @@ namespace Forestry.Raindrop.Tests
     /// - Remaining part when suffix length is bigger than timestamp + creation rate + nodes bits
     /// - Formatting
     /// - Equality
-    /// 
-    /// A structured identity was created to solve a particular problem with unstructured (random) that 
-    /// required an external resource (Azure Table) to guard against duplicates.  Using a combination of 
-    /// timestamp (lifetime), creation rate and nodes (plus remaining) a profile can be made for different scenarios 
-    /// and constraints.  Lifetime for structured identities is not infinite and restricted by the number 
-    /// of bits allowed for the timestamp part which is mainly determined by the suffix length (i.e. number 
-    /// of characters allowed).
     /// </summary>
     public class IdentityTests
     {
@@ -35,10 +28,25 @@ namespace Forestry.Raindrop.Tests
         public void When_PrefixTooSmall_ItShould_ThrowFormatException()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create(string.Empty, 8, 268056000, 64, 64);
 
             // Act + Assert
-            Assert.Throws<FormatException>(() => Identity.NewIdentity(profile));
+            FormatException exception = Assert.Throws<FormatException>(() => NewIdentity(profile));
+            Assert.Equal(Messages.Identity.IsEmpty, exception.Message);
+        }
+
+        /// <summary>
+        /// Prefix may not be null
+        /// </summary>
+        [Fact]
+        public void When_PrefixNull_ItShould_ThrowFormatException()
+        {
+            // Arrange
+            Profile profile = Profile.Create(default!, 8, 268056000, 64, 64);
+
+            // Act + Assert
+            FormatException exception = Assert.Throws<FormatException>(() => NewIdentity(profile));
+            Assert.Equal(Messages.Identity.IsEmpty, exception.Message);
         }
 
         /// <summary>
@@ -48,23 +56,23 @@ namespace Forestry.Raindrop.Tests
         public void When_PrefixTooLarge_ItShould_ThrowFormatException()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCDEF", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create("ABCDEF", 8, 268056000, 64, 64);
 
-            // Act + Assert (only 5 latin uppercase and digits allowed)
-            Assert.Throws<FormatException>(() => Identity.NewIdentity(profile));
+            // Act + Assert (only 5 latin versals and digits allowed)
+            Assert.Throws<FormatException>(() => NewIdentity(profile));
         }
 
         /// <summary>
-        /// Prefix must only contain latin uppercase and digits
+        /// Prefix must only contain latin versals and digits
         /// </summary>
         [Fact]
         public void When_PrefixHasBadCharacter_ItShould_ThrowFormatException()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("$BCDEF", 8, 268056000, 64, 64);  // Only latin uppercase and digits
+            Profile profile = Profile.Create("$BCDEF", 8, 268056000, 64, 64);  // Only latin versals and digits
 
             // Act + Assert
-            Assert.Throws<FormatException>(() => Identity.NewIdentity(profile));
+            Assert.Throws<FormatException>(() => NewIdentity(profile));
         }
 
         /// <summary>
@@ -74,10 +82,11 @@ namespace Forestry.Raindrop.Tests
         public void When_PrefixHasWhitespace_ItShould_ThrowFormatException()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABC D", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create("ABC D", 8, 268056000, 64, 64);
 
             // Act + Assert
-            Assert.Throws<FormatException>(() => Identity.NewIdentity(profile));
+            FormatException exception = Assert.Throws<FormatException>(() => NewIdentity(profile));
+            Assert.Equal(Messages.Identity.InvalidPrefixCharacter, exception.Message);
         }
 
         /// <summary>
@@ -87,10 +96,10 @@ namespace Forestry.Raindrop.Tests
         public void When_PrefixStartingWhitespace_ItShould_Ignore()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile(" ABCD", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create(" ABCD", 8, 268056000, 64, 64);
 
             // Act + Assert
-            var identity = Identity.NewIdentity(profile);
+            Identity identity = NewIdentity(profile);
             Assert.True(identity.ToString("d").StartsWith('A'));
         }
 
@@ -101,10 +110,10 @@ namespace Forestry.Raindrop.Tests
         public void When_PrefixEndingWhitespace_ItShould_Ignore()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD ", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create("ABCD ", 8, 268056000, 64, 64);
 
             // Act + Assert
-            var identity = Identity.NewIdentity(profile);
+            Identity identity = NewIdentity(profile);
             Assert.True(identity.ToString("d")[3] == 'D');
         }
 
@@ -115,39 +124,52 @@ namespace Forestry.Raindrop.Tests
         public void When_PrefixLowercase_ItShould_ToUppercase()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("abcd", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create("abcd", 8, 268056000, 64, 64);
 
             // Act + Assert
-            var identity = Identity.NewIdentity(profile);
+            Identity identity = NewIdentity(profile);
             Assert.True(identity.ToString("d").StartsWith('A'));
         }
 
         /// <summary>
-        /// Prefix only latin uppercase (i.e. A-Z, no Ä, Ö, Å etc.)
+        /// Prefix only latin versals (i.e. A-Z, no Ä, Ö, Å etc.)
         /// </summary>
         [Fact]
         public void When_NonLatin_ItShould_ThrowFormatException()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ÄBC", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create("ÄBC", 8, 268056000, 64, 64);
 
             // Act + Assert
-            Assert.Throws<FormatException>(() => Identity.NewIdentity(profile));
+            FormatException exception = Assert.Throws<FormatException>(() => NewIdentity(profile));
+            Assert.Equal(Messages.Identity.InvalidPrefixCharacter, exception.Message);
         }
         #endregion
 
         #region Suffix
         /// <summary>
-        /// Crockford Base32 characters only (i.e. 0-9, A-Z except for O, U, I, L)
+        /// CrockFord Base32 characters only (i.e. 0-9, A-Z except for O, U, I, L)
         /// </summary>
         [Fact]
-        public void When_NewIdentity_ItShould_OnlyCrockfordSuffix()
+        public void When_NewIdentity_ItShould_OnlyCrockFordSuffix()
         {
             // Arrange + Act + Assert
             Assert.Throws<FormatException>(() => new Identity("XXXX-OABC1234"));  // O
             Assert.Throws<FormatException>(() => new Identity("XXXX-UABC1234"));  // U
             Assert.Throws<FormatException>(() => new Identity("XXXX-IABC1234"));  // I
             Assert.Throws<FormatException>(() => new Identity("XXXX-LABC1234"));  // L
+        }
+
+        /// <summary>
+        /// Suffix must have a maximum of 21 characters adhering to a Biometria policy 
+        /// even though UInt128 has space for 25
+        /// </summary>
+        [Fact]
+        public void When_SuffixTooLarge_ItShould_ThrowFormatException()
+        {
+            // Arrange
+            FormatException exception = Assert.Throws<FormatException>(() => new Identity("XXXX-01234567890123456789012")); // 22 characters
+            Assert.Equal(Messages.Identity.WrongSuffixLength, exception.Message);
         }
         #endregion
 
@@ -159,7 +181,7 @@ namespace Forestry.Raindrop.Tests
         public void When_NewIdentity_ItShould_HaveCorrectBitSizes()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create("ABCD", 8, 268056000, 64, 64);
 
             // Act + Assert
             Assert.Equal(28, profile.TimestampBits);   // 2^28 == 268 435 456 seconds / (60 * 60 * 24 * 365) == 8.5 years
@@ -175,7 +197,7 @@ namespace Forestry.Raindrop.Tests
         public void When_NewIdentity_ItShould_HaveCorrectMasks()
         {
             // Arrange (where 268056000 seconds == 8.5 years)
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create("ABCD", 8, 268056000, 64, 64);
 
             // Act + Assert
             Assert.True(profile.CreationRateMask == (1UL << profile.CreationRateBits) - 1UL);  // mask == creation rate - 1 
@@ -191,7 +213,7 @@ namespace Forestry.Raindrop.Tests
         public void When_NewIdentitySmallLifetime_ItShould_SecondsPreference()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create("ABCD", 8, 268056000, 64, 64);
 
             // Act + Assert
             Assert.False(profile.UseTimestampMilliseconds);
@@ -204,7 +226,7 @@ namespace Forestry.Raindrop.Tests
         public void When_NewIdentitySuffixLengthTooSmall_ItShould_Throw()
         {
             // Arrange + Act + Arrange
-            Assert.Throws<InvalidOperationException>(() => IdentityProfiles.CreateIdentityProfile("ABCD", 7, 268056000, 64, 64));
+            Assert.Throws<InvalidOperationException>(() => Profile.Create("ABCD", 7, 268056000, 64, 64));
         }
 
         /// <summary>
@@ -214,40 +236,25 @@ namespace Forestry.Raindrop.Tests
         public void When_NewIdentityWithoutNodes_ItShould_HaveZeroNodesBits()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 8, 268056000, 64, -1);
+            Profile profile = Profile.Create("ABCD", 8, 268056000, 64, -1);
 
             // Act + Assert
             Assert.Equal(0, profile.NodesBits);
         }
 
         [Fact]
-        public void When_SmallerYearProfile_ItShould_HavePrefixAndLength()
+        public void When_SampleProfile_ItShould_HavePrefixAndLength()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.SmallerYearProfile;
+            Profile profile = IdentityProfiles.SampleProfile;
 
             // Act
-            var identity = Identity.NewIdentity(profile);
+            Identity identity = NewIdentity(profile);
             var value = identity.ToString();
 
             // Assert    
-            Assert.StartsWith(IdentityProfiles.ResultPrefix, value);
-            Assert.Equal(12, value.Length);
-        }
-
-        [Fact]
-        public void When_LargerYearProfile_ItShould_HavePrefixAndLength()
-        {
-            // Arrange
-            IdentityProfile profile = IdentityProfiles.LargerYearProfile;
-
-            // Act
-            var identity = Identity.NewIdentity(profile);
-            var value = identity.ToString();
-
-            // Assert    
-            Assert.StartsWith(IdentityProfiles.DeliveryPrefix, value);
-            Assert.Equal(20, value.Length);
+            Assert.StartsWith(IdentityProfiles.ForestryPrefix, value);
+            Assert.Equal(11, value.Length);
         }
         #endregion
 
@@ -260,7 +267,7 @@ namespace Forestry.Raindrop.Tests
         {
             // Arrange
             FakeClock clock = new();
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create("ABCD", 8, 268056000, 64, 64);
             Identity.Suffix suffix = new(profile, clock);
 
             long mask = (long)profile.TimestampMask; // last timestamp value 
@@ -284,7 +291,7 @@ namespace Forestry.Raindrop.Tests
         {
             // Arrange
             FakeClock clock = new() { Value = 1711843200 };
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create("ABCD", 8, 268056000, 64, 64);
 
             var suffix = new Suffix(profile, clock);
 
@@ -309,7 +316,7 @@ namespace Forestry.Raindrop.Tests
         public void When_LifeTimeRollover_ItShould_FireEvent() { 
             // Arrange
             var listener = new LifetimeOverflowListener();
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create("ABCD", 8, 268056000, 64, 64);
 
             FakeClock clock = new() { };
             var suffix = new Suffix(profile, clock);
@@ -335,8 +342,8 @@ namespace Forestry.Raindrop.Tests
         {
             // Arrange
             FakeClock clock = new() { Value = 1000 };
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 8, 268056000, 64, 64);
-            Identity.Suffix suffix = new(profile, clock);
+            Profile profile = Profile.Create("ABCD", 8, 268056000, 64, 64);
+            Suffix suffix = new(profile, clock);
 
             // Act
             string before = suffix.NewSuffix(0);
@@ -356,8 +363,8 @@ namespace Forestry.Raindrop.Tests
         {
             // Arrange
             FakeClock clock = new() { Value = 1000 };
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 8, 268056000, 64, 64);
-            Identity.Suffix suffix = new(profile, clock);
+            Profile profile = Profile.Create("ABCD", 8, 268056000, 64, 64);
+            Suffix suffix = new(profile, clock);
 
             // Act
             string before = suffix.NewSuffix(0);
@@ -378,8 +385,8 @@ namespace Forestry.Raindrop.Tests
             // Arrange
             FakeClock clock = new() { Value = 1000 };
 
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 8, 268056000, 64, 64);
-            Identity.Suffix suffix = new(profile, clock);
+            Profile profile = Profile.Create("ABCD", 8, 268056000, 64, 64);
+            Suffix suffix = new(profile, clock);
 
             CreationRateOverflowListener _ = new(clock);
 
@@ -397,7 +404,7 @@ namespace Forestry.Raindrop.Tests
         }
 
         /// <summary>
-        /// Parallel thread identity creation should have no duplicates even when creation 
+        /// Parrallel thread identity creation should have no duplicates even when creation 
         /// rate rolls over (i.e. multiple Rebus workers creating identities in parallel and hitting the same creation rate overflow at the same time)
         /// </summary>
         [Fact]
@@ -406,8 +413,8 @@ namespace Forestry.Raindrop.Tests
             // Arrange
             FakeClock clock = new() { Value = 1000 };
 
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 8, 268056000, 64, 64);
-            Identity.Suffix suffix = new(profile, clock);
+            Profile profile = Profile.Create("ABCD", 8, 268056000, 64, 64);
+            Suffix suffix = new(profile, clock);
 
             CreationRateOverflowListener _ = new(clock);
 
@@ -430,10 +437,10 @@ namespace Forestry.Raindrop.Tests
         public void When_NewIdentityNodeTooBig_ItShould_ThrowOutOfRange()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create("ABCD", 8, 268056000, 64, 64);
 
             // Act + Assert
-            Assert.Throws<ArgumentOutOfRangeException>(() => Identity.NewIdentity(profile, 66));
+            Assert.Throws<ArgumentOutOfRangeException>(() => NewIdentity(profile, 66));
         }
 
         /// <summary>
@@ -443,25 +450,25 @@ namespace Forestry.Raindrop.Tests
         public void When_SettingNodeId_ItShould_ExtractTheSameId()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create("ABCD", 8, 268056000, 64, 64);
 
             // Act
-            var identity = Identity.NewIdentity(profile, 5);
+            Identity identity = NewIdentity(profile, 5);
 
             // Assert
-            Assert.Equal(5, Identity.GetNode(identity.ToString("s").Split()[1], profile));
+            Assert.Equal(5, GetNode(identity.ToString("s").Split()[1], profile));
         }
         #endregion
 
         #region Remaining
         [Fact]
-        public void When_NewIdentityWithRemaining_ItShould_Fillout()
+        public void When_NewIdentityWithRemaining_ItShould_FillOut()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 16, 268056000, 64, -1);
+            Profile profile = Profile.Create("ABCD", 16, 268056000, 64, -1);
 
             // Act + Assert
-            Assert.Equal(20, Identity.NewIdentity(profile, 5).ToString().Length);
+            Assert.Equal(20, NewIdentity(profile, 5).ToString().Length);
         }
         #endregion
 
@@ -473,10 +480,10 @@ namespace Forestry.Raindrop.Tests
         public void When_NewIdentityFormatDash_ItShould_HaveDash()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create("ABCD", 8, 268056000, 64, 64);
 
             // Act + Assert
-            var identity = Identity.NewIdentity(profile);
+            Identity identity = NewIdentity(profile);
             Assert.True(identity.ToString("d").Contains('-'));
         }
 
@@ -487,10 +494,10 @@ namespace Forestry.Raindrop.Tests
         public void When_NewIdentityFormatSpace_ItShould_HaveSpace()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create("ABCD", 8, 268056000, 64, 64);
 
             // Act + Assert
-            var identity = Identity.NewIdentity(profile);
+            Identity identity = NewIdentity(profile);
             Assert.True(identity.ToString("s").Contains(' '));
         }
 
@@ -501,10 +508,10 @@ namespace Forestry.Raindrop.Tests
         public void When_NewIdentityFormatNone_ItShould_HaveNeitherDashOrSpaces()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create("ABCD", 8, 268056000, 64, 64);
 
             // Act + Assert
-            var identity = Identity.NewIdentity(profile);
+            Identity identity = NewIdentity(profile);
             Assert.True(identity.ToString()[4] != '-' || identity.ToString()[4] != ' ');
         }
 
@@ -515,10 +522,10 @@ namespace Forestry.Raindrop.Tests
         public void When_NewIdentity_ItShould_HaveSameSuffixLength()
         {
             // Arrange
-            IdentityProfile profile = IdentityProfiles.CreateIdentityProfile("ABCD", 8, 268056000, 64, 64);
+            Profile profile = Profile.Create("ABCD", 8, 268056000, 64, 64);
 
             // Act + Assert
-            var identity = Identity.NewIdentity(profile);
+            Identity identity = NewIdentity(profile);
             Assert.Equal(8, identity.ToString("s").Split()[1].Length);
         }
         #endregion
@@ -532,13 +539,13 @@ namespace Forestry.Raindrop.Tests
         public void When_NewIdentity_ItShould_EqualOther()
         {
             // Arrange
-            var identity = Identity.NewIdentity(IdentityProfiles.SmallerYearProfile);
+            Identity identity = NewIdentity(IdentityProfiles.SampleProfile);
 
             // Act
             var other = new Identity(identity.ToString("d"));
 
             // Assert
-            Assert.Equal(IdentityProfiles.ResultPrefix.Length + IdentityProfiles.ResultSuffixLength, identity.ToString().Length);
+            Assert.Equal(IdentityProfiles.ForestryPrefix.Length + IdentityProfiles.SuffixLength, identity.ToString().Length);
             Assert.True(identity == other);
         }
 
@@ -549,7 +556,7 @@ namespace Forestry.Raindrop.Tests
         public void When_NewIdentity_ItShould_NotEqualOther()
         {
             // Arrange
-            var identity = Identity.NewIdentity(IdentityProfiles.SmallerYearProfile);
+            Identity identity = NewIdentity(IdentityProfiles.SampleProfile);
 
             // Act
             var other = new Identity("XXXX-12345678");
@@ -557,7 +564,7 @@ namespace Forestry.Raindrop.Tests
             // Assert
             Assert.True(identity != other);
         }
-        #endregion        
+        #endregion
     }
 
     #region Clock
@@ -589,7 +596,7 @@ namespace Forestry.Raindrop.Tests
 
         protected override void OnEventSourceCreated(EventSource eventSource) { 
             if (eventSource.Name == CreationRateOverflowEventName) { 
-                EnableEvents(eventSource, EventLevel.Warning); // enable listening to creation rate overflow events with level == warning
+                EnableEvents(eventSource, EventLevel.Warning); // enable listening to creation rate overflow events with leve == warning
             } 
         }
 
@@ -613,7 +620,7 @@ namespace Forestry.Raindrop.Tests
         {
             if (eventSource.Name == LifetimeOverflowEventName)
             {
-                EnableEvents(eventSource, EventLevel.Warning); // enable listening to creation rate overflow events with level == warning
+                EnableEvents(eventSource, EventLevel.Warning); // enable listening to creation rate overflow events with leve == warning
             }
         }
 
@@ -624,6 +631,85 @@ namespace Forestry.Raindrop.Tests
                 Events.Add(arguments);
             }
         }
+    }
+    #endregion
+
+    #region Profiles
+    internal static class IdentityProfiles
+    {
+        #region Prefix
+        /// <summary>
+        /// FOR == Forestry prefix
+        /// </summary>
+        public const string ForestryPrefix = "FOR";
+        #endregion
+
+        #region Suffix
+        /// <summary>
+        /// Suffix length
+        /// </summary>
+        public const byte SuffixLength = 8;
+        #endregion
+
+        #region Lifetimes
+        /// <summary>
+        /// 8.5 years in seconds (8.5 * 365 * 24 * 60 * 60)
+        /// </summary>
+        /// <remarks>2 to the power of 28 == 268435456 covers 8 years in seconds with 28 bits</remarks>
+        public const int Lifetime_8_Years = 268056000;
+
+        /// <summary>
+        /// 17 years in seconds (17 * 365 * 24 * 60 * 60)
+        /// </summary>
+        /// <remarks>2 to the power of 29 == 536870912 covers 17 years in seconds with 29 bits</remarks>
+        public const int Lifetime_17_Years = 536112466;
+
+        /// <summary>
+        /// 17 years in seconds (34 * 365 * 24 * 60 * 60)
+        /// </summary>
+        /// <remarks>2 to the power of 30 == 1073741824 covers 34 years in seconds with 30 bits</remarks>
+        public const int Lifetime_34_Years = 1072224000;
+        #endregion
+
+        #region Creation Rate
+        /// <summary>
+        /// Creation rate == 64 before delaying to next second
+        /// </summary>
+        /// <remarks>2 to the power of 6 == 64 covering 64 per second</remarks>
+        public const int CreationRate_64 = 64;
+
+        /// <summary>
+        /// Creation rate == 32 before delaying to next second 
+        /// </summary>
+        /// <remarks>2 to the power of 5 == 32 covering 32 per second</remarks>
+        public const int CreationRate_32 = 32;
+
+        /// <summary>
+        /// Creation rate == 16 before delaying to next second
+        /// </summary>
+        /// <remarks>2 to the power of 4 == 16 covering 16 per second</remarks>
+        public const int CreationRate_16 = 16;
+        #endregion
+
+        #region Nodes
+        /// <summary>
+        /// Nodes in a distributed system
+        /// </summary>
+        /// <remarks>2 to the power of 6 == 64 covers 64 nodes
+        public const int Nodes = 64;  // Max 65 nodes when 0 is a valid node id
+        #endregion
+
+        #region Profiles
+        /// <summary>
+        /// Sample profile has a policy of a maximum 8 characters using the Crockford alphabet (5 bits per character):
+        ///  - 17 year lifetime == 29 bits
+        ///  - 32 creations per second == 5 bits
+        ///  - 64 nodes == 6 bits
+        /// 
+        /// total == 40 bits / 5 bits per character == 8 characters
+        /// </summary>
+        public static readonly Profile SampleProfile = Profile.Create(ForestryPrefix, SuffixLength, Lifetime_17_Years, CreationRate_32, Nodes);
+        #endregion
     }
     #endregion
 }
