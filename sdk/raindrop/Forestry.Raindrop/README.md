@@ -1,5 +1,5 @@
 # Overview
-Raindrop is an structured identity provider inspired by Twitter's [Snowflake](https://github.com/jtejido/snowflake) where the identity is composed of:
+ Crystialized water floating down as snow is like DNA but raindrops when splashing are decent thumbprints dependiing on how hard you press.  Raindrop is an structured identity provider inspired by Twitter's [Snowflake](https://github.com/jtejido/snowflake) where the identity is composed of:
 
   - prefix
   - time where the lifetime is based on identity profiles
