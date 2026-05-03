@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.Tracing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Xunit;
 using static Forestry.Raindrop.Identity;
 
@@ -17,6 +19,7 @@ namespace Forestry.Raindrop.Tests
     /// - Remaining part when suffix length is bigger than timestamp + creation rate + nodes bits
     /// - Formatting
     /// - Equality
+    /// - Services
     /// </summary>
     public class IdentityTests
     {
@@ -563,6 +566,39 @@ namespace Forestry.Raindrop.Tests
 
             // Assert
             Assert.True(identity != other);
+        }
+        #endregion
+
+        #region Services
+        /// <summary>
+        /// Service configuration <see cref="NodeId"/> creates an <see cref="IOptionsMonitor{TOptions}"/> dependency
+        /// </summary>
+        [Fact]
+        public void When_UsingOptionsMonitor_ItShould_HaveSameNodeId()
+        {
+            // Arrange
+            IOptionsMonitor<NodeId> monitor = FakeOptionsFactory.OptionsMonitor(5); // node id == 5
+            byte nodeId = monitor.Get(NodeId.Name).Value;
+            
+            // Act
+            Identity identity = NewIdentity(IdentityProfiles.SampleProfile,nodeId);
+
+            // Assert
+            Assert.Equal(nodeId, GetNode(identity.ToString("s").Split()[1], IdentityProfiles.SampleProfile));
+        }
+
+        [Fact]
+        public void When_BuildServiceProvider_ItShould_HaveSameNodeId()
+        {
+            // Arrange
+            ServiceCollection services = new();
+            services.Configure<NodeId>(options => options.Value = 5);
+            
+            // Act
+            ServiceProvider provider = services.BuildServiceProvider();
+
+            // Assert
+            provider.GetRequiredService<IOptionsMonitor<NodeId>>().Get(NodeId.Name).Value = 5;
         }
         #endregion
     }

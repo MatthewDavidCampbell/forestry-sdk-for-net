@@ -1,5 +1,13 @@
 # Release History
 
+## 1.0.0-beta.2 (Unreleased)
+
+### Features Added
+- `Node` options monitor example plus how an id can be resolved from Service Fabric
+
+### Other Changes
+- TODO about Kubernetes
+
 ## 1.0.0-beta.1 (Unreleased)
 
 ### Features Added

@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Forestry Raindrop</Description>
+    <Description>Forestry PapiNet</Description>
     <TargetFrameworks>$(RequiredTargetFrameworks)</TargetFrameworks>
-    <Version>1.0.0-beta.2</Version>
+    <Version>1.0.0-beta.1</Version>
     <ComptableVersion>1.0.0</ComptableVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PackageTags>Forestry Raindrop</PackageTags>
+    <PackageTags>Forestry PapiNet</PackageTags>
   </PropertyGroup>
 
 </Project>

@@ -1,0 +1,2 @@
+# Biometria
+[Biometria](https://www.biometria.se/) allows the forestry industry to publish and subscribe to PapiNet agreements plus Biometria's own entities e.g. delivery sources.  [Biometria](https://github.com/biometria) has no offical Net support only guidelines.
